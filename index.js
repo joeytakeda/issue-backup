@@ -1,70 +1,56 @@
-import { Octokit } from "npm:octokit@^2.0.10";
+import { octokit } from "./src/Octokit.js";
+import Repository from "./src/Repository.js";
 import * as fs from "https://deno.land/std@0.214.0/fs/mod.ts";
-import { default as xmlserializer } from "npm:xmlserializer";
-import * as parse5 from "npm:parse5";
+import { parse } from "https://deno.land/std/flags/mod.ts";
 
-const org = "projectEndings";
-const dataDir = `./data/${org}`;
+const ARGS = parse(Deno.args);
 
-const GITHUB_TOKEN = Deno.env.get("GITHUB_TOKEN");
-const octokit = new Octokit({ auth: GITHUB_TOKEN });
+const outDir = parse(Deno.args)?.out || "./issues";
 
-const headers = {
-  Accept: "application/vnd.github.full+json",
+const init = async () => {
+  try {
+    console.log(ARGS);
+    if (!ARGS.hasOwnProperty("org")) {
+      throw new Error("Either --org or --org and --repo must be specified");
+    }
+    if (ARGS.hasOwnProperty("repo")) {
+      await backupIssuesForRepo({
+        org: ARGS.org,
+        repo: ARGS.repo,
+      });
+    } else {
+      await backupIssuesForOrg(ARGS.org);
+    }
+  } catch (e) {
+    console.error(e);
+  }
 };
 
-console.log(`Backing up issues for ${org}`);
-
-const { data: repositories } = await octokit.rest.repos.listForOrg({
-  org,
-  type: "public",
-});
-
-console.log(`Found ${repositories.length} repositories`);
-
-for await (const repository of repositories) {
-  const { name } = repository;
-  console.log(`Backing up issues for ${name}`);
-  const outDir = `${dataDir}/${name}`;
-  const outFile = `${outDir}/issues.json`;
-  const issuesAndPRs = await octokit.paginate(octokit.rest.issues.listForRepo, {
-    owner: org,
-    repo: repository.name,
-    state: "all",
-    per_page: 100,
-    headers,
-  });
-  // Exclude pull requests (since they aren't necessarily useful)
-  const issues = issuesAndPRs.filter((issue) => !issue.pull_request);
-
-  // Now iterate through; note that this is *slow* since it's not batching requests properly, really.
-  // Better would be to have some sort of request queue that could properly batch requests so not to
-  // exceed the limit, but would provide more connections
-
-  for await (const issue of issues) {
-    issue.body_html = parseXHTML(issue.body_html);
-    if (issue.comments === 0) {
-      issue.comments = [];
-      continue;
-    }
-    console.log(`Found ${issue.comments} for issue ${issue.number}`);
-    const comments = await octokit.paginate(octokit.rest.issues.listComments, {
-      owner: org,
-      repo: name,
-      issue_number: issue.number,
-      headers,
-    });
-    comments.forEach((comment) => {
-      comment.body_html = parseXHTML(comment.body_html);
-    });
-    issue.comments = comments;
+async function backupIssuesForRepo({ org, repo }) {
+  const repository = new Repository({ org, repo });
+  const outFile = `${outDir}/${org}/${repo}.json`;
+  try {
+    const backup = await repository.getIssueBackup();
+    repository.log(`Writing ${outFile}...`);
+    await fs.ensureDir(`${outDir}/${org}`);
+    await Deno.writeTextFile(outFile, JSON.stringify(backup, null, "\t"));
+    repository.log("Done!");
+  } catch (e) {
+    console.error(e);
   }
-  await fs.ensureDir(outDir);
-  await Deno.writeTextFile(outFile, JSON.stringify(issues, null, "\t"));
-  console.log(`Wrote ${outFile}`);
 }
 
-function parseXHTML(string) {
-  const dom = parse5.parse(string);
-  return xmlserializer.serializeToString(dom);
+async function backupIssuesForOrg(org) {
+  const { data: repositories } = await octokit.rest.repos.listForOrg({
+    org,
+    type: "public",
+  });
+  for await (const repository of repositories) {
+    await backupIssuesForRepo({
+      org,
+      repo: repository.name,
+    });
+  }
 }
+
+await init();
