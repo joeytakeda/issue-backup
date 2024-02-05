@@ -10,10 +10,10 @@ const outDir = parse(Deno.args)?.out || "./issues";
 const init = async () => {
   try {
     console.log(ARGS);
-    if (!ARGS.hasOwnProperty("org")) {
+    if (!ARGS["org"]) {
       throw new Error("Either --org or --org and --repo must be specified");
     }
-    if (ARGS.hasOwnProperty("repo")) {
+    if (ARGS["repo"]) {
       await backupIssuesForRepo({
         org: ARGS.org,
         repo: ARGS.repo,

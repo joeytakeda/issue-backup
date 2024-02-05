@@ -1,5 +1,8 @@
 {
     "tasks": {
         "backup": "deno run --allow-read --allow-env=HOME,GITHUB_TOKEN --allow-net=api.github.com --allow-write='./issues' index.js"
+     },
+     "fmt": {
+        "include": ["index.js", "src/"]
      }
     }

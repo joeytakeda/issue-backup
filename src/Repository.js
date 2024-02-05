@@ -44,7 +44,7 @@ export default class Repository {
         {
           ...this.opts,
           ...{ state: "all" },
-        }
+        },
       );
       this._issues = allIssues.reduce((map, issue) => {
         if (!issue.pull_request) {
@@ -65,7 +65,7 @@ export default class Repository {
       this.log("Retrieving comments");
       const comments = await octokit.paginate(
         octokit.rest.issues.listCommentsForRepo,
-        this.opts
+        this.opts,
       );
       comments.forEach((comment) => {
         comment.body_html = this.parseXHTML(comment.body_html);
