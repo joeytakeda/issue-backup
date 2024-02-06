@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
-                xmlns:xs="http://www.w3.org/2001/XMLSchema"
-                xmlns:array="http://www.w3.org/2005/xpath-functions/array"
-                xmlns:map="http://www.w3.org/2005/xpath-functions/map"
-                xmlns:math="http://www.w3.org/2005/xpath-functions/math"
-                xmlns:jt="foo"
-                xmlns:html="http://www.w3.org/1999/xhtml"
-                xpath-default-namespace="http://www.tei-c.org/ns/1.0"
-                xmlns="http://www.tei-c.org/ns/1.0"
-                exclude-result-prefixes="#all"
-                expand-text="yes"
-                version="3.0">
-
-    <xsl:output method="xml" indent="yes"/>
-    <xsl:mode on-no-match="shallow-skip"/>
+	xmlns:xs="http://www.w3.org/2001/XMLSchema"
+	xmlns:array="http://www.w3.org/2005/xpath-functions/array"
+	xmlns:map="http://www.w3.org/2005/xpath-functions/map"
+	xmlns:math="http://www.w3.org/2005/xpath-functions/math"
+	xmlns:jt="foo"
+	xmlns:html="http://www.w3.org/1999/xhtml"
+	xpath-default-namespace="http://www.tei-c.org/ns/1.0"
+	xmlns="http://www.tei-c.org/ns/1.0"
+	exclude-result-prefixes="#all"
+	expand-text="yes"
+	version="3.0">
+	
+	<xsl:output method="xml" indent="yes"/>
+	<xsl:mode on-no-match="shallow-skip"/>
 	<xsl:mode name="html" on-no-match="shallow-skip"/>
 	<xsl:param name="dir" select="'./issues'"/>
 	<xsl:param name="out" select="'./tei'"/>
@@ -22,7 +22,7 @@
 	<xsl:variable name="out.resolved" select="resolve-uri($out)"/>
 	
 	<xsl:variable name="files" select="uri-collection($dir || '?select=*.json;recurse=yes')"/>
-
+	
 	<xsl:template name="go">
 		<xsl:message select="$dir.resolved"/>
 		<xsl:message select="count($files)"/>
@@ -30,13 +30,11 @@
 			<xsl:call-template name="makeTEI"/>
 		</xsl:for-each>
 	</xsl:template>
-
+	
 	<xsl:template name="makeTEI">
-		
 		<xsl:variable name="basename" 
 			select="substring-after(., $dir.resolved) => replace('\.json$', '')"/>
 		<xsl:result-document href="{resolve-uri($out.resolved || '/' || $basename || '.xml')}">
-			
 			<xsl:message select="current-output-uri()"/>
 			<xsl:processing-instruction name="xml-model">href="https://jenkins.tei-c.org/job/TEIP5-CMC-features/lastSuccessfulBuild/artifact/P5/release/xml/tei/custom/schema/relaxng/tei_all.rng" schematypens="http://relaxng.org/ns/structure/1.0"</xsl:processing-instruction>
 			<TEI xmlns="http://www.tei-c.org/ns/1.0">
@@ -72,7 +70,7 @@
 				
 			</TEI>
 		</xsl:result-document>
-	
+		
 		
 	</xsl:template>
 	
@@ -103,25 +101,25 @@
 			</xsl:next-iteration>
 		</xsl:iterate>
 	</xsl:template>
-
-    <xsl:template name="issue">
-    	<xsl:variable name="number" select="xs:integer(.?number)"/>
-        <div type="issue" subtype="{.?state}" n="{$number}">
-        	<!--Not sure how best to model "assignees"-->
-        	<head><xsl:value-of select=".?title"/></head>
-        	<xsl:call-template name="post">
-        		<xsl:with-param name="issue_number" select="$number"/>
-        	</xsl:call-template>
-        	<div type="comments">
-        		<xsl:for-each select="array:flatten(.?comments)">
-        			<xsl:call-template name="post">
-        				<xsl:with-param name="position" select="position()" as="xs:integer"/>
-        				<xsl:with-param name="issue_number" select="$number"/>
-        			</xsl:call-template>
-        		</xsl:for-each>
-        	</div>
-        </div>
-    </xsl:template>
+	
+	<xsl:template name="issue">
+		<xsl:variable name="number" select="xs:integer(.?number)"/>
+		<div type="issue" subtype="{.?state}" n="{$number}">
+			<!--Not sure how best to model "assignees"-->
+			<head><xsl:value-of select=".?title"/></head>
+			<xsl:call-template name="post">
+				<xsl:with-param name="issue_number" select="$number"/>
+			</xsl:call-template>
+			<div type="comments">
+				<xsl:for-each select="array:flatten(.?comments)">
+					<xsl:call-template name="post">
+						<xsl:with-param name="position" select="position()" as="xs:integer"/>
+						<xsl:with-param name="issue_number" select="$number"/>
+					</xsl:call-template>
+				</xsl:for-each>
+			</div>
+		</div>
+	</xsl:template>
 	
 	<xsl:template name="post">
 		<xsl:param name="issue_number"/>
@@ -133,9 +131,8 @@
 					<xsl:value-of select="replace(.?body, '&#xD;','')"/>
 				</code>
 			</ab>
-				<!--<xsl:apply-templates select="parse-xml-fragment(.?body_html)//*:body/*" mode="html"/>-->
+			<!--<xsl:apply-templates select="parse-xml-fragment(.?body_html)//*:body/*" mode="html"/>-->
 			<xsl:call-template name="reactions"/>
-			
 		</post>
 	</xsl:template>
 	
@@ -158,7 +155,7 @@
 						</xsl:sequence>
 					</measureGrp>
 				</xsl:where-populated>
-
+				
 			</trailer>
 		</xsl:where-populated>
 	</xsl:template>
@@ -247,6 +244,6 @@
 		<xsl:param name="object" as="map(*)"/>
 		<xsl:sequence select="map:contains($object, 'login') and $object?type = 'User'"/>
 	</xsl:function>
-
-
+	
+	
 </xsl:stylesheet>
