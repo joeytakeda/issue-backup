@@ -126,12 +126,12 @@
 		<xsl:param name="position" select="()"/>
 		<post xml:id="{string-join(('issue', $issue_number, $position),'_')}" ref="{.?html_url}"
 			when-iso="{.?created_at}" who="#{jt:getUserID(.?user)}">
-			<ab>
+	<!-- 		<ab>
 				<code lang="gfm">
 					<xsl:value-of select="replace(.?body, '&#xD;','')"/>
 				</code>
-			</ab>
-			<!--<xsl:apply-templates select="parse-xml-fragment(.?body_html)//*:body/*" mode="html"/>-->
+			</ab> -->
+			<xsl:apply-templates select="parse-xml-fragment(.?body_gfm)" mode="html"/>
 			<xsl:call-template name="reactions"/>
 		</post>
 	</xsl:template>
@@ -161,35 +161,61 @@
 	</xsl:template>
 	
 	
-	<xsl:template match="html:p" mode="html">
+	<xsl:template match="*:p" mode="html">
 		<p>
 			<xsl:apply-templates mode="#current"/>
 		</p>
 	</xsl:template>
 	
-	<xsl:template match="html:div" mode="html">
+	<xsl:template match="*:div" mode="html">
 		<ab>
 			<xsl:apply-templates mode="#current"/>
 		</ab>
 	</xsl:template>
 	
-	<xsl:template match="html:div[contains-token(@class,'highlight')]" mode="html">
-		<ab>
-			<eg>
-				<xsl:apply-templates mode="#current"/>
-			</eg>
-		</ab>
+	<xsl:template match="*:div[contains-token(@class,'highlight')]" mode="html">
+		<xsl:choose>
+			<xsl:when test="contains-token(@class,'highlight-source-xml')">
+				<xsl:variable name="text" select="string-join(descendant::text(),'')" as="xs:string"/>
+
+					<xsl:try>
+						<egXML xmlns="http://www.tei-c.org/ns/Examples">
+							<xsl:copy-of select="parse-xml-fragment($text)" copy-namespaces="no"/>
+						</egXML>
+						<xsl:catch>
+							<xsl:sequence select="$text"/>
+						</xsl:catch>
+					</xsl:try>
+			</xsl:when>
+			<xsl:otherwise>
+				<ab>
+					<xsl:apply-templates mode="#current"/>
+				</ab>
+			</xsl:otherwise>			
+		</xsl:choose>
 		
 	</xsl:template>
 	
-	<xsl:template match="html:pre[html:code]" mode="html">
+	<xsl:template match="*:pre" mode="html">
 		<eg>
-			<xsl:apply-templates mode="#current"/>
+			<xsl:choose>
+				<xsl:when test="parent::*:div and not(*:code)">
+					<xsl:call-template name="code"/>
+				</xsl:when>
+				<xsl:otherwise>
+					<xsl:apply-templates mode="#current"/>
+				</xsl:otherwise>
+			</xsl:choose>
+
 		</eg>
 	</xsl:template>
+
 	
-	<xsl:template match="html:code" mode="html">
+	<xsl:template match="*:code" name="code" mode="html">
 		<code>
+			<xsl:if test="ancestor::*:div[matches(@class,'highlight-source-')]">
+				<xsl:attribute name="lang" select="tokenize(*:div[matches(@class,'highlight-source-')][1]/@class)[matches(.,'highlight-source-')] => replace('highlight-source-','')"/>
+			</xsl:if>
 			<xsl:apply-templates mode="#current"/>
 		</code>
 	</xsl:template>
@@ -198,25 +224,48 @@
 		<xsl:value-of select="."/>
 	</xsl:template>
 	
-	<xsl:template match="html:ul | html:ol" mode="html">
+	<xsl:template match="*:ul | *:ol" mode="html">
 		<list>
 			<xsl:apply-templates mode="#current"/>
 		</list>
 	</xsl:template>
 	
-	<xsl:template match="html:li" mode="html">
+	<xsl:template match="*:li" mode="html">
 		<item>
 			<xsl:apply-templates mode="#current"/>
 		</item>
 	</xsl:template>
 	
-	<xsl:template match="html:blockquote" mode="html">
+	<xsl:template match="*:blockquote" mode="html">
 		<quote>
 			<xsl:apply-templates mode="#current"/>
 		</quote>
 	</xsl:template>
+
+	<xsl:template match="*:table" mode="html">
+		<table>
+			<xsl:apply-templates mode="#current"/>
+		</table>
+	</xsl:template>
+
+
+	<xsl:template match="*:tr" mode="html">
+		<row>
+			<xsl:if test="parent::*:thead">
+				<xsl:attribute name="role">label</xsl:attribute>
+			</xsl:if>
+			<xsl:apply-templates mode="#current"/>
+		</row>
+	</xsl:template>
+
+	<xsl:template match="*:td | *:th" mode="html">
+		<cell>
+		
+			<xsl:apply-templates mode="#current"/>
+		</cell>
+	</xsl:template>
 	
-	<xsl:template match="html:a" mode="html">
+	<xsl:template match="*:a" mode="html">
 		<ref target="{@href}">
 			<xsl:apply-templates mode="#current"/>
 		</ref>

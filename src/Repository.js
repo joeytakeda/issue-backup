@@ -1,6 +1,5 @@
 import { octokit } from "./Octokit.js";
-import { default as xmlserializer } from "npm:xmlserializer";
-import * as parse5 from "npm:parse5";
+import { render } from "https://deno.land/x/gfm/mod.ts";
 
 export default class Repository {
   constructor({ org, repo, opts }) {
@@ -14,7 +13,7 @@ export default class Repository {
         repo: this.repo,
         per_page: 100,
         headers: {
-          Accept: "application/vnd.github.full+json",
+          Accept: "application/vnd.github+json",
         },
       },
     };
@@ -44,11 +43,11 @@ export default class Repository {
         {
           ...this.opts,
           ...{ state: "all" },
-        },
+        }
       );
       this._issues = allIssues.reduce((map, issue) => {
         if (!issue.pull_request) {
-          issue.body_html = this.parseXHTML(issue.body_html);
+          issue.body_gfm = render(issue.body);
           issue._comments = issue.comments;
           issue.comments = [];
           map.set(issue.url, issue);
@@ -65,10 +64,10 @@ export default class Repository {
       this.log("Retrieving comments");
       const comments = await octokit.paginate(
         octokit.rest.issues.listCommentsForRepo,
-        this.opts,
+        { ...this.opts, ...{ direction: "asc" } }
       );
       comments.forEach((comment) => {
-        comment.body_html = this.parseXHTML(comment.body_html);
+        comment.body_gfm = render(comment.body);
       });
       this._comments = comments;
       this.log(`Found ${comments.length} comments`);
@@ -78,13 +77,5 @@ export default class Repository {
 
   log(msg) {
     console.log(`${this.org}/${this.repo}: ${msg}`);
-  }
-
-  parseXHTML(string) {
-    if (!string) {
-      return string;
-    }
-    const dom = parse5.parse(string);
-    return xmlserializer.serializeToString(dom);
   }
 }
