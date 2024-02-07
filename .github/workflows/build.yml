@@ -34,7 +34,7 @@ jobs:
       - name: Set Timestamp
         shell: bash
         run: |
-          echo "TSTAMP=$(date -u +"%d/%m/%Y_%H:%M:%S")" >> $GITHUB_ENV
+          echo "TSTAMP=$(date -u +"%Y-%m-%d_%H%M%S")" >> $GITHUB_ENV
 
       - name: Run linter
         run: deno lint
