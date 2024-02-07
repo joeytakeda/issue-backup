@@ -1,4 +1,4 @@
-# Issue Backups
+# Issue Backups (WIP)
 
 Small set of scripts, written for (Deno)[https://deno.land/],[^1] for backing up GitHub issues and comments using the (GitHub REST API)[https://docs.github.com/en/rest?apiVersion=2022-11-28]. This was built with the TEIC in mind, but the Javascript is repo/organization agnostic. 
 
