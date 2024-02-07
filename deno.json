@@ -1,6 +1,9 @@
 {
     "tasks": {
-        "backup": "deno run --allow-read --allow-env=HOME,GITHUB_TOKEN --allow-net=api.github.com --allow-write='./issues' index.js"
+        "sef": "deno run --allow-read --allow-write='.' npm:xslt3 -xsl:gh2cmc.xsl -export:gh2cmc.sef.json -nogo",
+        "backup": "deno run --allow-read --allow-env=HOME,GITHUB_TOKEN --allow-net=api.github.com --allow-write='./issues' backup.js",
+        "transform": "deno run --allow-read --allow-run --allow-write convert.js",
+        "convert": "deno task sef && deno task transform"
      },
      "fmt": {
         "include": ["index.js", "src/"]

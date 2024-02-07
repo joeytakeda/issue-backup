@@ -1,5 +1,18 @@
 import { octokit } from "./Octokit.js";
-import { render } from "https://deno.land/x/gfm/mod.ts";
+import { render as gfm_render } from "https://deno.land/x/gfm@0.6.0/mod.ts";
+
+const normalize = (string) => {
+  return string
+    .replaceAll(/[\u2028\u2029]/gi, "\n")
+    .replace(/\\u[\dA-F]{4}/gi, (unicode) => {
+      return String.fromCharCode(parseInt(unicode.replace(/\\u/g, ""), 16));
+    })
+    .replace(/\uFFFD/g, "");
+};
+
+const render = (string) => {
+  return normalize(gfm_render(string));
+};
 
 export default class Repository {
   constructor({ org, repo, opts }) {
@@ -43,10 +56,11 @@ export default class Repository {
         {
           ...this.opts,
           ...{ state: "all" },
-        }
+        },
       );
       this._issues = allIssues.reduce((map, issue) => {
         if (!issue.pull_request) {
+          issue.body = normalize(issue.body);
           issue.body_gfm = render(issue.body);
           issue._comments = issue.comments;
           issue.comments = [];
@@ -64,9 +78,10 @@ export default class Repository {
       this.log("Retrieving comments");
       const comments = await octokit.paginate(
         octokit.rest.issues.listCommentsForRepo,
-        { ...this.opts, ...{ direction: "asc" } }
+        { ...this.opts, ...{ direction: "asc" } },
       );
       comments.forEach((comment) => {
+        comment.body = normalize(comment.body);
         comment.body_gfm = render(comment.body);
       });
       this._comments = comments;

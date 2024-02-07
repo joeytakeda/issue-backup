@@ -17,25 +17,41 @@
 	<xsl:mode name="html" on-no-match="shallow-skip"/>
 	<xsl:param name="dir" select="'./issues'"/>
 	<xsl:param name="out" select="'./tei'"/>
+	<xsl:param name="files" select="''"/>
 	
 	<xsl:variable name="dir.resolved" select="resolve-uri($dir)"/>
 	<xsl:variable name="out.resolved" select="resolve-uri($out)"/>
 	
-	<xsl:variable name="files" select="uri-collection($dir || '?select=*.json;recurse=yes')"/>
+
+	<xsl:variable name="files.resolved" as="xs:anyURI+">
+		<xsl:choose>
+			<xsl:when test="$files = ''">
+				<xsl:sequence select="uri-collection($dir || '?select=*.json;recurse=yes')"/>
+			</xsl:when>
+			<xsl:otherwise>
+				<xsl:for-each select="$files">
+					<xsl:sequence select="tokenize(.,'\s*,\s*') ! resolve-uri(.)"/>
+				</xsl:for-each>
+			</xsl:otherwise>
+		</xsl:choose>
+	</xsl:variable>
 	
 	<xsl:template name="go">
 		<xsl:message select="$dir.resolved"/>
-		<xsl:message select="count($files)"/>
-		<xsl:for-each select="$files">
+		<xsl:message select="count($files.resolved)"/>
+		<xsl:for-each select="$files.resolved">
 			<xsl:call-template name="makeTEI"/>
 		</xsl:for-each>
 	</xsl:template>
 	
+
 	<xsl:template name="makeTEI">
 		<xsl:variable name="basename" 
 			select="substring-after(., $dir.resolved) => replace('\.json$', '')"/>
-		<xsl:result-document href="{resolve-uri($out.resolved || '/' || $basename || '.xml')}">
-			<xsl:message select="current-output-uri()"/>
+			<xsl:message select="$basename"/>
+		<xsl:variable name="doc" select="json-doc(.)"/>
+		<xsl:result-document href="{resolve-uri($out.resolved || '/' || $basename || '.xml')}" normalization-form="NFKD">
+<!-- 			<xsl:message select="current-output-uri()"/> -->
 			<xsl:processing-instruction name="xml-model">href="https://jenkins.tei-c.org/job/TEIP5-CMC-features/lastSuccessfulBuild/artifact/P5/release/xml/tei/custom/schema/relaxng/tei_all.rng" schematypens="http://relaxng.org/ns/structure/1.0"</xsl:processing-instruction>
 			<TEI xmlns="http://www.tei-c.org/ns/1.0">
 				<teiHeader>
@@ -54,7 +70,7 @@
 						<particDesc>
 							<listPerson>
 								<xsl:call-template name="participants">
-									<xsl:with-param name="issues" select="json-doc(.)"/>
+									<xsl:with-param name="issues" select="$doc"/>
 								</xsl:call-template>
 							</listPerson>
 						</particDesc>
@@ -62,7 +78,7 @@
 				</teiHeader>
 				<text>
 					<body>
-						<xsl:for-each select="array:flatten(json-doc(.))">
+					<xsl:for-each select="array:flatten($doc)">
 							<xsl:call-template name="issue"/>
 						</xsl:for-each>
 					</body>
@@ -180,7 +196,8 @@
 
 					<xsl:try>
 						<egXML xmlns="http://www.tei-c.org/ns/Examples">
-							<xsl:copy-of select="parse-xml-fragment($text)" copy-namespaces="no"/>
+						
+							<xsl:apply-templates select="parse-xml-fragment($text)" mode="eg"/>
 						</egXML>
 						<xsl:catch>
 							<xsl:sequence select="$text"/>
@@ -194,6 +211,12 @@
 			</xsl:otherwise>			
 		</xsl:choose>
 		
+	</xsl:template>
+	
+	<xsl:template match="*" mode="eg">
+		<xsl:element name="{local-name()}" namespace="http://www.tei-c.org/ns/Examples">
+			<xsl:apply-templates select="node()" mode="#current"/>
+		</xsl:element>	
 	</xsl:template>
 	
 	<xsl:template match="*:pre" mode="html">
@@ -236,6 +259,8 @@
 		</item>
 	</xsl:template>
 	
+	<xsl:template match="*:blockquote[descendant::*:a[matches(@href,'https://github.com/notifications/unsubscribe-auth/')]]" mode="html"/>
+	
 	<xsl:template match="*:blockquote" mode="html">
 		<quote>
 			<xsl:apply-templates mode="#current"/>
@@ -265,7 +290,7 @@
 		</cell>
 	</xsl:template>
 	
-	<xsl:template match="*:a" mode="html">
+	<xsl:template match="*:a[@href]" mode="html">
 		<ref target="{@href}">
 			<xsl:apply-templates mode="#current"/>
 		</ref>

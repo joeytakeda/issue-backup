@@ -1,11 +1,11 @@
 import { octokit } from "./src/Octokit.js";
 import Repository from "./src/Repository.js";
 import * as fs from "https://deno.land/std@0.214.0/fs/mod.ts";
-import { parse } from "https://deno.land/std/flags/mod.ts";
+import * as mod from "https://deno.land/std@0.214.0/cli/parse_args.ts";
 
-const ARGS = parse(Deno.args);
+const ARGS = mod.parseArgs(Deno.args);
 
-const outDir = parse(Deno.args)?.out || "./issues";
+const outDir = mod.parseArgs(Deno.args)?.out || "./issues";
 
 const init = async () => {
   try {

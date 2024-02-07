@@ -1,0 +1,5 @@
+*.sef.json
+.DS_Store
+issues
+tei
+*.xpr
