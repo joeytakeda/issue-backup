@@ -9,7 +9,6 @@ const outDir = mod.parseArgs(Deno.args)?.out || "./issues";
 
 const init = async () => {
   try {
-    console.log(ARGS);
     if (!ARGS["org"]) {
       throw new Error("Either --org or --org and --repo must be specified");
     }

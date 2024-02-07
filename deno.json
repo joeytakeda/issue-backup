@@ -6,6 +6,9 @@
         "convert": "deno task sef && deno task transform"
      },
      "fmt": {
-        "include": ["index.js", "src/"]
+        "include": ["*.js", "src/"]
+     },
+     "lint": {
+         "include": ["*.js", "src/*"],
      }
     }

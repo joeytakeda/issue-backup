@@ -11,8 +11,8 @@
 	exclude-result-prefixes="#all"
 	expand-text="yes"
 	version="3.0">
-	
-	<xsl:output method="xml" indent="yes"/>
+
+
 	<xsl:mode on-no-match="shallow-skip"/>
 	<xsl:mode name="html" on-no-match="shallow-skip"/>
 	<xsl:param name="dir" select="'./issues'"/>
@@ -20,7 +20,6 @@
 	<xsl:param name="files" select="''"/>
 	
 	<xsl:variable name="dir.resolved" select="resolve-uri($dir)"/>
-	<xsl:variable name="out.resolved" select="resolve-uri($out)"/>
 	
 
 	<xsl:variable name="files.resolved" as="xs:anyURI+">
@@ -37,8 +36,6 @@
 	</xsl:variable>
 	
 	<xsl:template name="go">
-		<xsl:message select="$dir.resolved"/>
-		<xsl:message select="count($files.resolved)"/>
 		<xsl:for-each select="$files.resolved">
 			<xsl:call-template name="makeTEI"/>
 		</xsl:for-each>
@@ -46,39 +43,48 @@
 	
 
 	<xsl:template name="makeTEI">
-		<xsl:variable name="basename" 
-			select="substring-after(., $dir.resolved) => replace('\.json$', '')"/>
-			<xsl:message select="$basename"/>
 		<xsl:variable name="doc" select="json-doc(.)"/>
-		<xsl:result-document href="{resolve-uri($out.resolved || '/' || $basename || '.xml')}" normalization-form="NFKD">
-<!-- 			<xsl:message select="current-output-uri()"/> -->
-			<xsl:processing-instruction name="xml-model">href="https://jenkins.tei-c.org/job/TEIP5-CMC-features/lastSuccessfulBuild/artifact/P5/release/xml/tei/custom/schema/relaxng/tei_all.rng" schematypens="http://relaxng.org/ns/structure/1.0"</xsl:processing-instruction>
+		<xsl:variable name="basename" 
+			select="substring-after(., $dir.resolved) => replace('\.json$', '') => replace('^/','')"
+			as="xs:string"/>
+
+		<xsl:variable name="outputURI" select="$out || '/' || $basename || '.xml'"/>
+		<xsl:message>Creating <xsl:value-of select="$outputURI"/></xsl:message>
+		<xsl:result-document href="{resolve-uri($outputURI)}" method="xml" indent="yes">
+			<xsl:processing-instruction name="xml-model">href="https://jenkins.tei-c.org/job/TEIP5-CMC-features/lastSuccessfulBuild/artifact/P5/release/xml/tei/custom/schema/relaxng/tei_all.rng"
+				schematypens="http://relaxng.org/ns/structure/1.0"</xsl:processing-instruction>
 			<TEI xmlns="http://www.tei-c.org/ns/1.0">
 				<teiHeader>
 					<fileDesc>
 						<titleStmt>
-							<title>GitHub Issues</title>
+							<title>GitHub Issues: <xsl:value-of select="$basename"/></title>
 						</titleStmt>
 						<publicationStmt>
 							<p/>
 						</publicationStmt>
 						<sourceDesc>
-							<p>GitHub</p>
+							<p><ptr target="https://github.com/{$basename}/issues"/></p>
 						</sourceDesc>
 					</fileDesc>
-					<profileDesc>
-						<particDesc>
-							<listPerson>
-								<xsl:call-template name="participants">
-									<xsl:with-param name="issues" select="$doc"/>
-								</xsl:call-template>
-							</listPerson>
-						</particDesc>
-					</profileDesc>
+					<xsl:where-populated>
+						<profileDesc>
+							<xsl:where-populated>
+								<particDesc>
+									<xsl:where-populated>
+										<listPerson>
+											<xsl:call-template name="participants">
+												<xsl:with-param name="issues" select="$doc"/>
+											</xsl:call-template>
+										</listPerson>
+									</xsl:where-populated>
+								</particDesc>
+							</xsl:where-populated>
+						</profileDesc>
+					</xsl:where-populated>
 				</teiHeader>
 				<text>
 					<body>
-					<xsl:for-each select="array:flatten($doc)">
+						<xsl:for-each select="array:flatten($doc)">
 							<xsl:call-template name="issue"/>
 						</xsl:for-each>
 					</body>
@@ -183,6 +189,10 @@
 		</p>
 	</xsl:template>
 	
+	<xsl:template match="*:p[*:div]" mode="html">
+		<xsl:apply-templates mode="#current"/>
+	</xsl:template>
+	
 	<xsl:template match="*:div" mode="html">
 		<ab>
 			<xsl:apply-templates mode="#current"/>
@@ -219,6 +229,20 @@
 		</xsl:element>	
 	</xsl:template>
 	
+	<xsl:template match="*:egXML" mode="eg">
+		<xsl:comment>FIXME: Nested egXML</xsl:comment>
+		<xsl:sequence select="serialize(.)"/>
+	</xsl:template>
+	
+	<xsl:template match="*:div[contains-token(@class,'highlight')]" mode="html">
+		<xsl:variable name="lang" 
+			select="analyze-string(@class,'highlight-source-([^\s]+)')//*:group[@nr=1]/string(.)"
+			as="xs:string?"/>
+		<xsl:next-match>
+			<xsl:with-param name="lang" tunnel="yes" select="$lang" as="xs:string?"/>
+		</xsl:next-match>
+	</xsl:template>
+	
 	<xsl:template match="*:pre" mode="html">
 		<eg>
 			<xsl:choose>
@@ -229,16 +253,16 @@
 					<xsl:apply-templates mode="#current"/>
 				</xsl:otherwise>
 			</xsl:choose>
-
 		</eg>
 	</xsl:template>
 
 	
 	<xsl:template match="*:code" name="code" mode="html">
+		<xsl:param name="lang" tunnel="yes" as="xs:string?"/>
 		<code>
-			<xsl:if test="ancestor::*:div[matches(@class,'highlight-source-')]">
-				<xsl:attribute name="lang" select="tokenize(*:div[matches(@class,'highlight-source-')][1]/@class)[matches(.,'highlight-source-')] => replace('highlight-source-','')"/>
-			</xsl:if>
+			<xsl:where-populated>
+				<xsl:attribute name="lang" select="$lang"/>
+			</xsl:where-populated>
 			<xsl:apply-templates mode="#current"/>
 		</code>
 	</xsl:template>
@@ -290,7 +314,7 @@
 		</cell>
 	</xsl:template>
 	
-	<xsl:template match="*:a[@href]" mode="html">
+	<xsl:template match="*:a[@href[. castable as xs:anyURI]]" mode="html">
 		<ref target="{@href}">
 			<xsl:apply-templates mode="#current"/>
 		</ref>
