@@ -1,6 +1,6 @@
 # Issue Backups (WIP)
 
-Small set of scripts, written for (Deno)[https://deno.land/],[^1] for backing up GitHub issues and comments using the (GitHub REST API)[https://docs.github.com/en/rest?apiVersion=2022-11-28]. This was built with the TEIC in mind, but the Javascript is repo/organization agnostic. 
+Small set of scripts, written for [Deno](https://deno.land/),[^1] for backing up GitHub issues and comments using the [GitHub REST API]*(https://docs.github.com/en/rest?apiVersion=2022-11-28). This was built with the TEIC in mind, but the Javascript is repo/organization agnostic. 
 
 This is mostly a wrapper around the standard API--however, the REST API for issues does not include all comment data; the REST API for comments similarly does not include comment data. This script both merges those outputs and converts the Markdown to HTML for later processing.[^2]
 
@@ -23,7 +23,7 @@ deno task backup --org TEIC --repo Stylesheets
 # Output in ./issues/TEIC/Stylesheets.json
 ```
 
-See (.github/workflows/build.yml)[.github/workflows/build.yml] for an example of using GitHub Actions to automate the backup of issues.
+See [.github/workflows/build.yml](.github/workflows/build.yml) for an example of using GitHub Actions to automate the backup of issues.
 
 ## EXPERIMENTAL TEI CONVERSION
 
